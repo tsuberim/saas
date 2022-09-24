@@ -4,7 +4,7 @@ import yargs from 'yargs';
 import Redis from 'ioredis';
 import express from 'express';
 
-import { Isolate } from 'isolated-vm';
+import { Callback, Isolate } from 'isolated-vm';
 import { MongoClient } from 'mongodb';
 
 
@@ -24,8 +24,6 @@ async function main() {
         host: redisUrl.hostname,
         port: Number(redisUrl.port)
     });
-
-    console.log('hello')
 
     const app = express();
     app.use(express.json());
@@ -57,8 +55,14 @@ async function main() {
 
             const vm = new Isolate({ memoryLimit: 8 });
             const context = await vm.createContext({});
+
             const script = await vm.compileScript(code, {});
-            const result = await script.run(context, { timeout: 100 });
+            await script.run(context, { timeout: 100 });
+
+            const result = await context.evalClosure('onReq($0, $1)', [req.method, req.body], {timeout: 100, arguments: {copy: true}, result: {copy: true}})
+
+            vm.dispose();
+
             res.send({result});
         } catch (e) {
             res.status(400).send((e as any).message);
