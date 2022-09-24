@@ -7,9 +7,18 @@ import express from 'express';
 import { Isolate } from 'isolated-vm';
 
 
-const port = Number(process.env.PORT || '8080')
+const port = Number(process.env.PORT || '8080');
+const redisUrl = new URL(process.env.REDIS!)
 
 async function main() {
+    const redis = new Redis({
+        keyPrefix: 'runtime:',
+        username: redisUrl.username,
+        password: redisUrl.password,
+        host: redisUrl.hostname,
+        port: Number(redisUrl.port)
+    });
+
     const code = 'Math.random()'
 
     const vm = new Isolate({memoryLimit: 8});
@@ -22,8 +31,10 @@ async function main() {
     const app = express();
     app.use(express.json());
 
-    app.get('/', (req, res) => {
-        res.send('hello world')
+    app.get('/', async (req, res) => {
+        await redis.incr('key');
+        const value = await redis.get('key');
+        res.send('hello world: ' + value)
     })
 
     app.listen(port);
