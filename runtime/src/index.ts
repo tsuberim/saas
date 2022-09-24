@@ -59,7 +59,7 @@ async function main() {
             const context = await vm.createContext({});
             const script = await vm.compileScript(code, {});
             const result = await script.run(context, { timeout: 100 });
-            res.send(result);
+            res.send({result});
         } catch (e) {
             res.status(400).send((e as any).message);
         }
